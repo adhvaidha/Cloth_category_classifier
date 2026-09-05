@@ -1,0 +1,120 @@
+{
+  "request": {
+    "occasion": "casual",
+    "temperature_c": 24,
+    "rain": true
+  },
+  "garments_entering_phase3": [
+    {
+      "image": "bottom1.jfif",
+      "slot": "lower",
+      "phase2_decision": "preferred",
+      "category_name": "Shorts"
+    },
+    {
+      "image": "bottom2.jfif",
+      "slot": "lower",
+      "phase2_decision": "preferred",
+      "category_name": "Jeans"
+    },
+    {
+      "image": "jacket.jfif",
+      "slot": "upper",
+      "phase2_decision": "suitable",
+      "category_name": "Jacket"
+    },
+    {
+      "image": "top1.jfif",
+      "slot": "full_body",
+      "phase2_decision": "suitable",
+      "category_name": "Nightdress"
+    },
+    {
+      "image": "top2.jfif",
+      "slot": "upper",
+      "phase2_decision": "preferred",
+      "category_name": "Tee"
+    }
+  ],
+  "excluded_no_structural_slot": [],
+  "candidate_outfits": [
+    {
+      "items": [
+        "top1.jfif"
+      ],
+      "structure": "full_body"
+    },
+    {
+      "items": [
+        "bottom1.jfif",
+        "jacket.jfif"
+      ],
+      "structure": "upper_lower"
+    },
+    {
+      "items": [
+        "bottom1.jfif",
+        "top2.jfif"
+      ],
+      "structure": "upper_lower"
+    },
+    {
+      "items": [
+        "bottom2.jfif",
+        "jacket.jfif"
+      ],
+      "structure": "upper_lower"
+    },
+    {
+      "items": [
+        "bottom2.jfif",
+        "top2.jfif"
+      ],
+      "structure": "upper_lower"
+    },
+    {
+      "items": [
+        "jacket.jfif",
+        "top1.jfif"
+      ],
+      "structure": "full_body_layered"
+    },
+    {
+      "items": [
+        "top1.jfif",
+        "top2.jfif"
+      ],
+      "structure": "full_body_layered"
+    }
+  ],
+  "rejected_structurally_invalid": [
+    {
+      "items": [
+        "bottom1.jfif",
+        "bottom2.jfif"
+      ],
+      "reason": "Two lower-body garments cannot be worn together."
+    },
+    {
+      "items": [
+        "bottom1.jfif",
+        "top1.jfif"
+      ],
+      "reason": "A full-body garment already covers the lower body; pairing with another lower-body garment is structurally invalid."
+    },
+    {
+      "items": [
+        "bottom2.jfif",
+        "top1.jfif"
+      ],
+      "reason": "A full-body garment already covers the lower body; pairing with another lower-body garment is structurally invalid."
+    },
+    {
+      "items": [
+        "jacket.jfif",
+        "top2.jfif"
+      ],
+      "reason": "Two upper-body garments cannot both fill the single top slot in this basic outfit structure."
+    }
+  ]
+}

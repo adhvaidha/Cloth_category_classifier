@@ -1,0 +1,127 @@
+{
+  "request": {
+    "occasion": "college",
+    "temperature_c": 25,
+    "rain": false
+  },
+  "garments": [
+    {
+      "image": "/home/claude/proj/Cloth_category_classifier/wardrobe/bottom1.jfif",
+      "decision": "preferred",
+      "reason": "Category evidence (47%) suggests 'Shorts', which suits a college occasion. Category evidence (36%) suggests 'Jeans', which suits a college occasion. Category evidence (47%) suggests 'Shorts', which suits warm weather.",
+      "details": {
+        "category": {
+          "name": "Shorts",
+          "probability": 0.47071927785873413,
+          "confident": false
+        },
+        "occasion_verdicts": [
+          {
+            "verdict": "preferred",
+            "reason": "Category evidence (47%) suggests 'Shorts', which suits a college occasion."
+          },
+          {
+            "verdict": "preferred",
+            "reason": "Category evidence (36%) suggests 'Jeans', which suits a college occasion."
+          }
+        ],
+        "weather_verdicts": [
+          {
+            "verdict": "preferred",
+            "reason": "Category evidence (47%) suggests 'Shorts', which suits warm weather."
+          }
+        ]
+      }
+    },
+    {
+      "image": "/home/claude/proj/Cloth_category_classifier/wardrobe/bottom2.jfif",
+      "decision": "preferred",
+      "reason": "Category evidence (54%) suggests 'Jeans', which suits a college occasion. Category evidence (44%) suggests 'Shorts', which suits a college occasion. Category evidence (44%) suggests 'Shorts', which suits warm weather.",
+      "details": {
+        "category": {
+          "name": "Jeans",
+          "probability": 0.5393902659416199,
+          "confident": false
+        },
+        "occasion_verdicts": [
+          {
+            "verdict": "preferred",
+            "reason": "Category evidence (54%) suggests 'Jeans', which suits a college occasion."
+          },
+          {
+            "verdict": "preferred",
+            "reason": "Category evidence (44%) suggests 'Shorts', which suits a college occasion."
+          }
+        ],
+        "weather_verdicts": [
+          {
+            "verdict": "preferred",
+            "reason": "Category evidence (44%) suggests 'Shorts', which suits warm weather."
+          }
+        ]
+      }
+    },
+    {
+      "image": "/home/claude/proj/Cloth_category_classifier/wardrobe/jacket.jfif",
+      "decision": "suitable",
+      "reason": "Acceptable, with caveats: Category evidence (100%) suggests 'Jacket', which may run warm.",
+      "details": {
+        "category": {
+          "name": "Jacket",
+          "probability": 0.9956706762313843,
+          "confident": true
+        },
+        "occasion_verdicts": [
+          {
+            "verdict": "preferred",
+            "reason": "Category evidence (100%) suggests 'Jacket', which suits a college occasion."
+          }
+        ],
+        "weather_verdicts": [
+          {
+            "verdict": "soft_penalty",
+            "reason": "Category evidence (100%) suggests 'Jacket', which may run warm."
+          }
+        ]
+      }
+    },
+    {
+      "image": "/home/claude/proj/Cloth_category_classifier/wardrobe/top1.jfif",
+      "decision": "suitable",
+      "reason": "No strong rule flagged this garment as unsuitable for the requested occasion and weather. Uncertain DeepFashion predictions are retained rather than automatically filtered.",
+      "details": {
+        "category": {
+          "name": "Nightdress",
+          "probability": 0.25056102871894836,
+          "confident": false
+        },
+        "occasion_verdicts": [],
+        "weather_verdicts": []
+      }
+    },
+    {
+      "image": "/home/claude/proj/Cloth_category_classifier/wardrobe/top2.jfif",
+      "decision": "preferred",
+      "reason": "Category evidence (100%) suggests 'Tee', which suits a college occasion. Category evidence (100%) suggests 'Tee', which suits warm weather.",
+      "details": {
+        "category": {
+          "name": "Tee",
+          "probability": 0.9999817609786987,
+          "confident": true
+        },
+        "occasion_verdicts": [
+          {
+            "verdict": "preferred",
+            "reason": "Category evidence (100%) suggests 'Tee', which suits a college occasion."
+          }
+        ],
+        "weather_verdicts": [
+          {
+            "verdict": "preferred",
+            "reason": "Category evidence (100%) suggests 'Tee', which suits warm weather."
+          }
+        ]
+      }
+    }
+  ]
+}
