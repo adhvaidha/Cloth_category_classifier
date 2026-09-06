@@ -1166,15 +1166,24 @@ class InferenceService:
         image_lookup: Dict[str, Image.Image],
         metadata_lookup: Dict[str, Dict[str, Any]],
         context: Dict[str, Any],
+        use_vit: bool = True,
     ) -> List[Dict[str, Any]]:
         """
         Context-aware Phase 4 ranking.
 
-        Final score:
+        Final score (use_vit=True, the ResNet+ViT checkpoints are loaded):
             40% occasion suitability
             35% learned ViT outfit compatibility
             15% weather suitability
             10% structural/garment compatibility
+
+        Fallback score (use_vit=False, checkpoints not available):
+            Occasion / weather / garment-coverage weights above,
+            renormalized to sum to 1.0 with the ViT term dropped. This is
+            still real, wardrobe-specific ranking driven by CLIP attribute
+            evidence and the existing occasion/weather rules — not a fake
+            or random result — it just doesn't have the learned "do these
+            items look good together" signal until the checkpoints exist.
 
         Category names are not hardcoded as occasion rejections.
         Phase 2 visual-attribute evidence supplies the context signal.
@@ -1390,8 +1399,10 @@ class InferenceService:
             )
             print(f"⚠️ Phase 4 could not resolve image IDs: {missing}")
 
-        embeddings = self.embed_images(images)
-        embedding_lookup = dict(zip(ordered_names, embeddings))
+        embedding_lookup: Dict[str, Any] = {}
+        if use_vit:
+            embeddings = self.embed_images(images)
+            embedding_lookup = dict(zip(ordered_names, embeddings))
 
         scored = []
 
@@ -1406,22 +1417,26 @@ class InferenceService:
             if not item_names:
                 continue
 
-            if any(name not in embedding_lookup for name in item_names):
+            if use_vit and any(name not in embedding_lookup for name in item_names):
                 continue
 
-            token_array = np.stack(
-                [embedding_lookup[name] for name in item_names],
-                axis=0,
-            )
-            tokens = torch.tensor(
-                token_array,
-                dtype=torch.float32,
-                device=self.device,
-            ).unsqueeze(0)
+            vit_raw = None
+            vit_score = None
 
-            vit_raw = float(self.vit.score_compatibility(tokens).item())
-            # Preserve ordering while normalizing to [0,1].
-            vit_score = float(torch.sigmoid(torch.tensor(vit_raw)).item())
+            if use_vit:
+                token_array = np.stack(
+                    [embedding_lookup[name] for name in item_names],
+                    axis=0,
+                )
+                tokens = torch.tensor(
+                    token_array,
+                    dtype=torch.float32,
+                    device=self.device,
+                ).unsqueeze(0)
+
+                vit_raw = float(self.vit.score_compatibility(tokens).item())
+                # Preserve ordering while normalizing to [0,1].
+                vit_score = float(torch.sigmoid(torch.tensor(vit_raw)).item())
 
             outfit_items = []
             occasion_scores = []
@@ -1469,12 +1484,34 @@ class InferenceService:
             else:
                 garment_score = 0.40
 
-            final_score = (
-                OCCASION_WEIGHT * occasion_score
-                + VIT_WEIGHT * vit_score
-                + WEATHER_WEIGHT * weather_score
-                + GARMENT_COMPATIBILITY_WEIGHT * garment_score
-            )
+            if use_vit:
+                final_score = (
+                    OCCASION_WEIGHT * occasion_score
+                    + VIT_WEIGHT * vit_score
+                    + WEATHER_WEIGHT * weather_score
+                    + GARMENT_COMPATIBILITY_WEIGHT * garment_score
+                )
+                score_weights = {
+                    "occasion": OCCASION_WEIGHT,
+                    "vit": VIT_WEIGHT,
+                    "weather": WEATHER_WEIGHT,
+                    "garment_compatibility": GARMENT_COMPATIBILITY_WEIGHT,
+                }
+            else:
+                # No learned compatibility signal available — renormalize
+                # the remaining rule-based weights so they still sum to 1.0.
+                fallback_total = OCCASION_WEIGHT + WEATHER_WEIGHT + GARMENT_COMPATIBILITY_WEIGHT
+                final_score = (
+                    OCCASION_WEIGHT * occasion_score
+                    + WEATHER_WEIGHT * weather_score
+                    + GARMENT_COMPATIBILITY_WEIGHT * garment_score
+                ) / fallback_total
+                score_weights = {
+                    "occasion": OCCASION_WEIGHT / fallback_total,
+                    "vit": 0.0,
+                    "weather": WEATHER_WEIGHT / fallback_total,
+                    "garment_compatibility": GARMENT_COMPATIBILITY_WEIGHT / fallback_total,
+                }
 
             scored.append({
                 "candidate_index": candidate_index,
@@ -1484,16 +1521,12 @@ class InferenceService:
                 "compatibility_score": float(final_score),
                 "final_score": float(final_score),
                 "occasion_score": float(occasion_score),
-                "vit_score_raw": float(vit_raw),
-                "vit_score": float(vit_score),
+                "vit_score_raw": vit_raw,
+                "vit_score": vit_score,
                 "weather_score": float(weather_score),
                 "garment_compatibility_score": float(garment_score),
-                "score_weights": {
-                    "occasion": OCCASION_WEIGHT,
-                    "vit": VIT_WEIGHT,
-                    "weather": WEATHER_WEIGHT,
-                    "garment_compatibility": GARMENT_COMPATIBILITY_WEIGHT,
-                },
+                "score_weights": score_weights,
+                "ranking_mode": "ai" if use_vit else "rule_based",
                 "outfit_size": len(item_names),
             })
 
@@ -1549,7 +1582,10 @@ class InferenceService:
             f"Context: {context}"
         )
 
-        if not self.models_loaded:
+        if not self.clip_loaded:
+            # CLIP is the hard requirement: Phase 1 classification and the
+            # occasion/weather rules both depend on it. ResNet/ViT are
+            # optional — see the use_vit fallback below.
             error = {
                 "error": "Models not loaded",
                 "details": self.model_errors,
@@ -1560,6 +1596,13 @@ class InferenceService:
             )
 
             return [error]
+
+        use_vit = self.resnet_loaded and self.vit_loaded
+        if not use_vit:
+            print(
+                "⚠️ ResNet/ViT checkpoints not loaded — ranking outfits by "
+                "occasion/weather/coverage rules only (see model_errors)."
+            )
 
         if not items:
             print("⚠️ No wardrobe items supplied")
@@ -1760,7 +1803,10 @@ class InferenceService:
         # ---------------------------------------------------------------
 
         print("\n" + "-" * 70)
-        print("PHASE 4 — CONTEXT-AWARE RESNET + VIT RANKING")
+        if use_vit:
+            print("PHASE 4 — CONTEXT-AWARE RESNET + VIT RANKING")
+        else:
+            print("PHASE 4 — RULE-BASED RANKING (ResNet/ViT checkpoints not loaded)")
         print("-" * 70)
 
         ranked = self._rank_phase3_candidates(
@@ -1769,6 +1815,7 @@ class InferenceService:
             image_lookup,
             metadata_lookup,
             context,
+            use_vit=use_vit,
         )
 
         print(
@@ -1820,7 +1867,10 @@ class InferenceService:
             "clip_loaded": self.clip_loaded,
             "filename_category_detection": False,
             "errors": self.model_errors,
-            "can_recommend": self.models_loaded,
+            # CLIP alone is enough to generate outfits (rule-based ranking);
+            # the full learned ranking additionally needs ResNet + ViT.
+            "can_recommend": self.clip_loaded,
+            "ranking_mode": "ai" if self.models_loaded else ("rule_based" if self.clip_loaded else "unavailable"),
             "device": self.device,
             "resnet_model": self.resnet is not None,
             "vit_model": self.vit is not None,

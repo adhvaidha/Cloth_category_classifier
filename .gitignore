@@ -14,3 +14,5 @@ Thumbs.db
 results/
 predictions/
 .env
+app_data/
+debug/*.json
